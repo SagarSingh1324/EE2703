@@ -1,0 +1,241 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[utf8]{inputenc}
+
+\title{EE2703 APL : Final Exam }
+\author{Sagar (EE20B115)}
+\date{May 12, 2022}
+
+\begin{document}
+
+\maketitle
+
+\section{Aim}
+In this assignment we aim to analyse if the current in antenna calculated using the standard equation agrees with current calculated using different method as shown in assignment.
+
+\section{Procedures and Observations}
+\subsection{Problem Statement 1}
+In this section we create vector I and z which hold the currents (known and unknown) in antenna elements and their locations respectively.
+Also we have to create vectors J and u which will hold only the unknown values and their locations.\\
+Expression used:
+\begin{equation}
+    z=i\times dz, -N\leq i\leq N
+\end{equation}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    z  = np.linspace(-N,N,TotalCurrentElements)     
+    z = z*l/N
+
+    I = np.zeros(TotalCurrentElements)               
+    I[0] = 0
+    I[N] = Im
+    I[2*N] = 0
+
+    u = np.delete(z,[0,N,2*N])                        
+    J = np.zeros(2*N-2) 
+    \end{lstlisting}
+    
+    \subsubsection{Observations}
+    Following arrays/vectors are obtained on running the code:\\
+$z = \begin{bmatrix}
+    0.5 \\
+    0.38 \\
+    0.25 \\
+	0.12 \\
+	0.0 \\
+	-0.12 \\
+    -0.25 \\
+    -0.38 \\ 
+    -0.5 \\    
+\end{bmatrix}$
+$I = \begin{bmatrix}
+    0.0 \\
+    0.0 \\
+    0.0 \\
+	0.0 \\
+	1.0 \\
+	0.0\\
+    0.0 \\
+    0.0 \\ 
+    0.0 \\   
+\end{bmatrix}$
+$u = \begin{bmatrix}
+    0.38 \\
+    0.25 \\
+	0.12 \\
+	-0.12 \\
+    -0.25 \\
+    -0.38 \\ 
+\end{bmatrix}$
+$J = \begin{bmatrix}
+	0.0\\
+    0.0 \\
+    0.0 \\ 
+    0.0 \\  
+	0.0\\
+    0.0 \\
+\end{bmatrix}$
+    
+\subsection{Problem Statement 2}
+In this section we aim to create a function that accepts N as an input and return a diagonal matrix with dimensions N-2 by N-2.\\
+Expressions used:
+\begin{equation}
+    2\pi H_{\phi}(z_i)=I_i
+\end{equation}
+and
+\begin{equation}
+    H_{\phi}=M\times J
+\end{equation}
+where \textbf{M} is a diagonal matrix.
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    def matrixM(N):                                  
+    M = np.zeros((2*N-2,2*N-2), dtype=float)
+    np.fill_diagonal(M,1)
+    return (1/(2*PI*a))*M
+    \end{lstlisting}
+    
+    \subsubsection{Observations}
+For N=4, we obtain the following matrix M:\\
+$M = \begin{bmatrix}
+	15.92&0&0&0&0\\
+	0&15.92&0&0&0\\
+	0&0&15.92&0&0\\
+	0&0&0&15.92&0\\
+	0&0&0&0&15.92\\	
+\end{bmatrix}$
+    
+\subsection{Problem Statement 3}
+In this section we aim to create a function that accepts N as an input and return a diagonal matrix with dimensions N-2 by N-2.\\
+Expressions used:
+\begin{equation}
+    P_{ij}=\frac{\mu_0}{4\pi}\frac{exp(-jkR_{ij})}{R_{ij}}dz
+\end{equation}
+Also
+\begin{equation}
+    P_{B}=\frac{\mu_0}{4\pi}\frac{exp(-jkR_{iN})}{R_{iN}}dz
+\end{equation}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    R = np.zeros((2*N+1,2*N+1),dtype=float)
+    
+    zy,zx = np.meshgrid(z,z)
+    R = np.sqrt(a**2 + (zx-zy)**2)
+    
+    X = np.copy(R)
+    X = np.delete(X,[0,N,2*N],axis=1)
+    
+    R1n = X[N,:]
+    Pb = (((mu*dz)/(4*PI))*(np.exp(-1j*k*R1n)))/R1n
+    
+    X = np.delete(X,[0,N,2*N],axis=0)
+    
+    P = np.zeros((2*N-2,2*N-2), dtype= complex)
+    P = ((mu*dz/(4*PI))*np.exp(-1j*k*X))/X
+    \end{lstlisting}
+    
+    \subsubsection{Observations}
+For N=4, we obtain the following P and $P_B$ matrices:\\
+$P = \begin{bmatrix}
+124.94-3.93j&9.2-3.83j&3.53-3.53j&-0.-2.5j&-0.77-1.85j&-1.18-1.18j\\
+9.2 -3.83j&124.94-3.93j&9.2 -3.83j&1.27-3.08j&-0.  -2.5j&-0.77-1.85j\\
+3.53-3.53j&9.2 -3.83j&124.94-3.93j&3.53-3.53j&1.27-3.08j&-0.  -2.5j\\
+-0.  -2.5j&1.27-3.08j&3.53-3.53j&124.94-3.93j&9.2 -3.83j&3.53-3.53j\\
+-0.77-1.85j&-0.  -2.5j&1.27-3.08j&9.2 -3.83j&124.94-3.93j&9.2 -3.83j\\
+-1.18-1.18j&-0.77-1.85j&-0.  -2.5j&3.53-3.53j&9.2 -3.83j&124.94-3.93j\\
+\end{bmatrix}$\\
+$P_B = \begin{bmatrix}
+	1.27-3.08j\\
+    3.53-3.53j \\
+    9.2 -3.83j \\ 
+    9.2 -3.83j\\  
+	3.53-3.53j\\
+    1.27-3.08j\\
+\end{bmatrix}$
+    
+\subsection{Problem Statement 4}
+In this section we take the curl of vector potential and find H field which is later made equal to H field obtained earlier.
+Using that we obtain Q and $Q_B$ matrices where $Q_B$ is a column vector. \\
+Expressions used:
+\begin{equation}
+    Q_{ij}=P_{ij}\frac{r}{\mu_0}(\frac{jk}{R_{ij}}+\frac{1}{R_{ij}^2})
+\end{equation}
+Also
+\begin{equation}
+    Q_{B}=P_{B}\frac{r}{\mu_0}(\frac{jk}{R_{iN}}+\frac{1}{R_{iN}^2})
+\end{equation}
+
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    Q = np.zeros((2*N-2,2*N-2), dtype=complex)
+    
+    Q = (a/mu)*P*(((1j*k)/X)+(1/(X**2)))
+    
+    Qb = (a/mu)*Pb*((1j*k/R1n)+(1/(R1n**2)))  
+    \end{lstlisting}
+    
+    \subsubsection{Observations}
+For N=4, we obtain the following Q and $Q_B$ matrices:\\
+$Q = \begin{bmatrix}
+99.52&0.05&0.01&0.0&-0.0&0.0\\
+0.05&99.52&0.05&0.0&0.0&0.0\\
+0.01&0.05&99.52&0.01&0.0&0.0\\
+0.0&0.0&0.01&99.52&0.05&0.01\\
+0.0&0.0&0.0&0.05&99.52&0.05\\
+0.0&0.0&0.0&0.01&0.05&99.52\\
+\end{bmatrix}$\\
+$Q_B = \begin{bmatrix}
+	0.0\\
+    0.01 \\
+    0.05\\ 
+    0.05\\  
+	0.01\\
+    0.0\\
+\end{bmatrix}$ 
+    
+\subsection{Problem Statement 5}
+In this section we have to solve for \textbf{J}
+using the equation given below.
+\textbf{J} can be obtained by multiplying both sides with inverse of \textbf{M-Q} as done below.\\
+Expressions used:
+\begin{equation}
+    MJ = QJ + Q_B I_m
+\end{equation}
+or equivalently
+\begin{equation}
+    (M-Q)J=Q_B I_m
+\end{equation}
+
+Then \textbf{I} is obtained using \textbf{J} by assigning corresponding elements. 
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    J = np.dot(np.linalg.inv(M-Q),Qb)
+    
+    I[1:N] = abs(J[0:N-1])
+    I[N+1:-1] = abs(J[N-1:])
+
+    \end{lstlisting}
+    
+    \subsubsection{Observations}
+Values of \textbf{I} and \textbf{J} are not meaningful for such small value of N.    
+
+\section{Plot of I vs l for N = 100}
+Now we change the value of N from 4 to 100 and Plot a graph of Current in Antenna \textbf{I} vs Length of Antenna \textbf{l} as shown:
+\subsubsection{Plot} 
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.35]{plot.png}
+        \caption{Plot of I vs l}
+    \end{figure}
+\subsubsection{Observations and Conclusions}    
+We can make the following observations from the plot:
+\begin{enumerate}
+    \item The shape of both graphs is approximately the same.
+    \item The current estimated is slightly higher than the one obtained using the equation.
+\end{enumerate}
+This minute offset that is observed in the plot arises because we have take a finite number of elements while doing our estimation. Which is not the case for the formula as it is obtained using integration. Dues to this limitation, the offset arises in plots.
+
+\end{document}
