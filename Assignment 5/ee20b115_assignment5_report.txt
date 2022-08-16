@@ -1,0 +1,431 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage[margin=0.4in]{geometry}
+\usepackage{float}
+
+\title{EE2703: Assignment 5}
+\author{Sagar ( ee20b115)}
+\date{March 3, 2022}
+
+\begin{document}
+
+\maketitle
+
+\section{Aim}
+
+In this assignment, we will solve for the currents in a resistor and discusses which part of the resistor is
+likely to get hottest. 
+
+Here we analyse the currents in a square copper plate to which a wire is soldered
+to the middle of it having 1V potential. 
+
+Then we will discuss how to find stopping condition after certain
+iterations,and model the errors obtained using Least Squares after analysing the actual errors. 
+
+And finally we will find the currents in the resistor after applying boundary
+conditions and analyse the vector plot of current flow and conclude which part of resistor will become
+hot.
+
+\section{Equations}
+
+      A wire is soldered to the middle of a copper plate and its voltage is
+      held at 1 Volt. One side of the plate is rounded, while the remaining
+      are not.\bigskip
+      
+      The dimension of the plate can be chose by the user of program. In this report we have used a 25 units by 25 units plate. And the no. of iterations will be 1500 with the radius of 1V regions as 8 units. Also the error tolerance is chosen to be $1e-7$.\bigskip
+      
+      To solve for currents in resistor,we use following equations given below:
+    \begin{enumerate}
+    \item    Differential form of ohm's law
+        \begin{equation}
+        \vec{J} = \sigma\vec{E}
+        \end{equation}
+    \item    Electric field is the gradient of the potential
+        \begin{equation}
+        \vec{E} = -\nabla{\phi}
+        \end{equation}
+    \item    Charge Continuity equation 
+        \begin{equation}
+        \nabla.\vec{J} = -\frac{\partial \rho}{\partial t}
+        \end{equation}
+    \item    Combining the above equations above, we get
+        \begin{equation}
+        \nabla.(-\sigma\nabla\phi) = -\frac{\partial \rho}{\partial t}
+        \end{equation}
+    \item    For a resistor of constant
+        conductivity, the equation becomes
+        \begin{equation}
+        \nabla^{2}\phi = \frac{1}{\sigma}\frac{\partial \rho}{\partial t}
+        \end{equation}
+    \item    For DC current, we have
+       \begin{equation}
+       \nabla^{2}\phi = 0
+       \end{equation}
+    \end{enumerate}    
+
+\section{Procedure and Observations}
+
+\subsection{Solution for 2D plate}
+
+    First we have to solve this equation to obtain Potential as $\phi$ 
+    \begin{equation}
+    \nabla^{2}\phi = 0
+    \end{equation}
+
+    For a 2D surface this reduces to
+    \begin{equation}
+    \frac{\partial^{2} \phi}{\partial x^{2}}+ \frac{\partial^{2} \phi}{\partial y^{2}} = 0
+     \end{equation}
+    
+    \begin{equation}
+    \frac{\partial \phi}{\partial x}_{(x_i,y_j)} = \frac{\phi(x_{i+1/2},y_j) - \phi(x_{i-1/2},y_j)}{\Delta x}
+     \end{equation}
+    
+    \begin{equation}
+    \frac{\partial^{2} \phi}{\partial x^{2}}_{(x_i,y_j)} = \frac{\phi(x_{i+1},y_j) -2\phi(x_i,y_j)+ \phi(x_{i-1},y_j)}{(\Delta x)^{2}}
+     \end{equation}
+    
+    For points on a 2D cartesian plane, this can be turned into a difference equation
+    \begin{equation}
+        \phi_{i,j} = \frac{\phi_{i+1,j} + \phi_{i-1,j} + \phi_{i,j+1} + \phi_{i,j-1}}{4} 
+    \end{equation}
+    
+    For the points on the boundary we have
+    \begin{equation}
+        \frac{\partial \phi}{\partial n} = 0
+    \end{equation}
+    Also $\phi$ for lower side of the square is 0.\bigskip
+
+    The Error after $k^{th}$ iteration, $E_k$
+    can be written as 
+    \begin{equation}
+        E_k = \phi_{k+1}-\phi_{k}
+    \end{equation}
+
+\subsection{Error}
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    x = array(linspace(int(-Nx/2), int(Nx/2), Nx))
+    y = array(linspace(int(Ny/2), int(-Ny/2), Ny))
+
+    phi = zeros([Nx,Ny])                            
+    [Y,X] = meshgrid(x,y)
+
+    Z = where((X*X + Y*Y) <= (radius)**2)       
+    phi[Z] = 1.0                            
+    phi1 = phi.copy()
+
+    Err = zeros([Niter])                               
+    for k in range(Niter): 
+    oldphi = phi.copy()
+    phi[1:-1,1:-1] = 0.25*(phi[1:-1,0:-2]+phi[1:-1,2:]+phi[0:-2,1:-1]+phi[2:,1:-1])    
+    phi[0,1:-1] = phi[1,1:-1]                               phi[1:-1,0] =  phi[1:-1,1]
+    phi[1:-1,-1] = phi[1:-1,-2]
+    phi[-1,1:-1] = 0
+    phi[Z] = 1.0                                
+    Err[k] = (np.max(absolute(phi-oldphi)))                                           
+    def func_fit(S,c):                                           
+    A = zeros([S.size, 2])                                   
+    A[:,0] = 1
+    A[:,1] = S
+    b = lstsq(A, log(c), rcond = None)[0]                     
+    fit = exp(dot(A,b))
+    return b, fit
+
+    Err2 = []                                                     
+    for i in range(int(Niter/50)):
+    Err2.append(Err[50*i]) 
+
+    figure(0)
+    title("semilog plot of error after "+str(Niter)+" iterations")
+    L1 = linspace(1,len(Err2),len(Err2)) 
+    semilogy(50*L1,Err2,'b.-')
+    xlabel("iterations")
+    ylabel("error")
+    legend(["error"], loc = 'upper right')
+    grid(True)
+    savefig("figure_0")
+    show()
+ 
+    figure(1)
+    title("loglog plot of error after "+str(Niter)+" iterations")
+    loglog(50*L1,Err2,'b.-')
+    xlabel("iterations")
+    ylabel("error")
+    legend(["error"], loc = 'upper right')
+    grid(True)
+    savefig("figure_1")
+    show()
+    \end{lstlisting}
+    \subsubsection{\textbf{PLOTS:}}
+    We plot the error vs the no. of iterations to see the how the error is evolving in this problem.\bigskip
+    
+    First, we'll use a \emph{semilog} graph for the plot:
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.6]{figure_0.png}
+                \end{tabular}
+        \end{figure} 
+
+    Now, we'll use a \emph{loglog} graph for the plot:
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.6]{figure_1.png}
+                \end{tabular}
+        \end{figure} 
+
+   \subsubsection{\textbf{OBSERVATIONS:}}
+  
+   Here we have plotted every 50th iteration for readability. From the plots we observe that:
+   
+   \begin{enumerate}
+        \item  The \emph{loglog} plot gives a reasonably straight line upto about 100 iterations, but after that we get
+        into a exponential curve. This is for a 25 by 25 grid.
+        \item  The \emph{semilog} plot gives a straight line 
+        for the plot after 100 iterations, before that it is hard to make any conclusion since we have only plotted 2 points.
+   \end{enumerate}
+
+\subsection{Modelling Error}
+    Since the \emph{semilog} plot is a straight line, we can model the given error curve using the exponential function.\bigskip
+    
+    Let the error be:
+    \[y = Ae^{Bx}\]
+    which can be re written as:
+    \[log y = log A + Bx\]
+    
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    Err3 = np.delete(Err2,[0])                          
+    L2 = np.delete(L1,[0])                                
+
+    figure(2)
+    title("semilog plot of true, fit for all, fit for values excluding first 100")
+    semilogy(50*L1,Err2,'g')
+    b1, fit1 = func_fit(L1,Err2)
+    b2, fit2 = func_fit(L2,Err3)
+    semilogy(50*L1, fit1, 'b.--')
+    semilogy(50*L2, fit2, 'r.--')
+    legend(["true value of error", "fit for all error values", "fit after excluding first 100 error values"], loc = "upper right")
+    xlabel("iterations")
+    ylabel("error")
+    grid(True)
+    savefig("figure_2")
+    show()
+    \end{lstlisting}
+    
+    \subsubsection{\textbf{PLOTS:}}
+    We extract A and B for the whole 1500 iterations and then 
+    after removing the first 100 iterations and plot the curve $y=Ae^{Bx}$ for both cases on a \emph{semilog} graph.
+
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.6]{figure_2.png}
+                \end{tabular}
+        \end{figure} 
+
+    \subsubsection{\textbf{OBSERVATIONS:}}
+    \begin{enumerate}
+        \item  We observe in the beginning the fit for all values(\textbf{blue}) is slightly higher than the true value(\textbf{green}) and fit after removing first 100 values(\textbf{red}). But later it goes slightly lower towards the end. 
+        \item  The fit after removing first 100 iterations follows the true value very accurately and doesn't seem to deviate even towards the end of iterations.
+    \end{enumerate}    
+    
+\subsection{Stopping Condition}
+    The maximum error scales as
+    \[Error = Ae^{Bk}\]
+    
+    where k is the iteration number.\bigskip
+    
+    Summing up the terms, we have
+
+   \begin{align*}
+        Error &= \sum_{k=N+1}^{\infty}error_k \\
+              &< \sum_{k=N+1}^{\infty}Ae^{Bk}\,dk \\
+              &\approx \int_{N+0.5}^{\infty}Ae^{Bk}\,dk\\
+              &= -\frac{A}{B} e^{B(N+0.5)}
+    \end{align*}
+    
+    For the given data (fit for all errors), we have
+    \[A = 0.024044\]
+    \[B = -0.014195\]
+    \[Tolerance = 1e-7\]
+    which gives
+    \[N = 1173\]
+    \[Error = 9.869772e-8\]
+    
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    x = linspace(1,Niter,Niter)
+    b3, fit3 = func_fit(x, Err)
+
+    def cumError(N, A, B):                        
+    return -(A/B)*exp(B*(N+0.5))
+
+    def stopCon(Niter, tol):         
+    cumErr = []
+    for n in range(1, Niter):
+        cumErr.append(cumError(n, exp(b3[0]), b3[1]))
+        if(absolute(cumErr[n-1]) <= tol):
+            return cumErr[-1], n     
+    return cumErr[-1], Niter
+
+    finErr, nStop = stopCon(Niter, tol)
+    print("After stopping, we have %g iterations and error is %g" %(nStop, finErr))  
+    \end{lstlisting}
+    
+    \subsubsection{\textbf{OBSERVATIONS:}}
+    \begin{enumerate}
+        \item  We observe that the error changes very little every iteration, but changes continuously. So the cumulative error is still large. 
+        \item  This method of solving Laplace’s Equation is very slow. This is because of the very low coefficient with which the error reduces.
+    \end{enumerate}     
+
+\subsection{Surface Plot of Potential}
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    figure(3) 
+    title("3D surface plot of $\phi$ after "+str(Niter)+" iterations")
+    ax = axes(projection ='3d')
+    ax.plot_surface(Y, X, phi, cmap ='jet')
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$y$')
+    ax.set_zlabel('$z$')
+    savefig("figure_3")
+    show()
+    \end{lstlisting}
+    \subsubsection{\textbf{PLOT:}}
+    Next we plot the final potential after 1500 iterations on a 3D surface plot.
+
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.7]{figure_3.png}
+                \end{tabular}
+        \end{figure} 
+        
+    \subsubsection{\textbf{OBSERVATIONS:}}
+    \begin{enumerate}
+        \item  We see that the Potential is higher(\textbf{red}) towards 1 and it slowly becomes lower(\textbf{blue}) as we move towards the opposite end. 
+        \item The maximum values at \textbf{red} end is 1V while the minimum value at \textbf{blue} end is 0V.
+    \end{enumerate}
+        
+\subsection{Contour Plot of Potential}
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    figure(4)
+    title("contour Plot of $\phi$ before iterations")
+    contourf(Y, X, phi1, cmap = cm.jet)
+    grid(True)
+    savefig("figure_4")
+    show()
+
+    figure(5)
+    title("contour Plot of $\phi$ after "+str(Niter)+" iterations")
+    contourf(Y, X, phi, cmap = cm.jet)
+    grid(True)
+    savefig("figure_5")
+    show()
+    \end{lstlisting}
+  
+    \subsubsection{\textbf{PLOTS:}}  
+    First we plot the initial potential before the iterations on a contour plot.        
+        
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.6]{figure_4.png}
+                \end{tabular}
+        \end{figure}
+    Next we plot the final potential after 1500 iterations on a contour plot.        
+        
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.6]{figure_5.png}
+                \end{tabular}
+        \end{figure}      
+        
+    \subsubsection{\textbf{OBSERVATIONS:}}
+    \begin{enumerate}
+        \item  We observe that before iterations the approximately circular area with radius of 8 units  is marked \textbf{red}.  
+        \item  After the iterations, the \textbf{red} part spread out and the top part becomes \textbf{red} while the bottom remains \textbf{blue} with a gradual trend of \textbf{red} to \textbf{green} to \textbf{blue} in bottom half.
+    \end{enumerate}
+ 
+\subsection{Vector Plot of Currents}
+  
+    The Current Density for a given Potential is obtained by
+    \begin{equation}
+        J_x = -\frac{\partial \phi}{\partial x} 
+    \end{equation}
+
+    \begin{equation}
+        J_y = -\frac{\partial \phi}{\partial y} 
+    \end{equation}
+
+    For points on a 2D plane, they can be written as following difference equations
+    \begin{equation}
+        J_{x,ij} = \frac{1}{2}(\phi_{i,j-1} - \phi_{i,j+1}) 
+    \end{equation}
+
+    \begin{equation}
+        J_{y,ij} = \frac{1}{2}(\phi_{i-1,j} - \phi_{i+1,j}) 
+    \end{equation}
+    
+    \subsubsection{\textbf{CODE:}}
+    \begin{lstlisting}[language=Python]
+    figure(6)                                                          
+    title("plot of current vectors and 1V region")
+    Jy = (phi[2:,1:-1] - phi[0:-2,1:-1])
+    Jx = (phi[1:-1,0:-2] - phi[1:-1,2:])
+    quiver( Y[1:-1,1:-1], X[1:-1,1:-1], Jx[:,::-1], Jy[:,::-1])
+    scatter(Y, X, phi1, color = 'Red', linewidths=5)
+    legend(["current", "1V region"])
+    grid(True)
+    savefig("figure_6")
+    show()
+    \end{lstlisting}    
+    
+    \subsubsection{\textbf{PLOT:}}
+    Using these, we plot the vector plot of currents after 1500 iterations.
+
+        \begin{figure}[H]
+            \centering
+            \setlength\tabcolsep{2pt}
+                \begin{tabular}{cc}
+                \includegraphics[scale=0.7]{figure_6.png}
+                \end{tabular}
+        \end{figure} 
+        
+    \subsubsection{\textbf{OBSERVATIONS:}}
+    \begin{enumerate}
+        \item  We see that the current vectors are going from middle to bottom in lower half while they are essentially zero in the upper half.
+        \item The 1V potential points are marked in \textbf{red}. There is no current in the central region as all the points are at same potential.
+    \end{enumerate} 
+
+\section{Conclusions} 
+
+    \begin{enumerate}
+    \item
+    We know that heat generated is from \(\vec{J}.\vec{E}\) so since \(\vec{J}\) and \(\vec{E}\) are higher in the bottom
+    region of the plate, there will more heat generation.
+    \item
+    Since there is almost no current in the upper region of plate,the upper part will remain colder relative to the lower region ignoring changes in temperature distribution due to conduction.
+    \item
+    We observe that the best method to solve this is to
+    increase \(N_x\) and \(N_y\) and increase the no of iterations, so that we get accurate values of potential and current.
+    \item
+    But the tradeoff with increasing \(N_x\) and \(N_y\) and the no of iterations is speed.
+    For higher values of parameters, the calculation times is larger.
+    \end{enumerate}
+        
+\end{document}

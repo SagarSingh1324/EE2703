@@ -1,0 +1,187 @@
+\documentclass[11pt, a4paper, twoside]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{listings}
+\usepackage{float}
+
+\title{EE2703: Assignment 8}
+\author{Sagar, EE20B115}
+\date{April 16, 2022}
+
+\begin{document}
+\maketitle
+
+\section{Aim}
+In this assignment we aim to analyse DFTs using Python's \textit{numpy.fft} toolbox.
+
+\section{Procedure and Observations}
+\subsection{Spectrum of $sin(5t)$}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    x = linspace(0,2*pi,129)
+    x = x[:-1]
+    
+    w = linspace(-64,64,129)
+    w=w[:-1]
+    
+    y = sin(5*x)
+    
+    Y = fftshift(fft(y))/128
+    \end{lstlisting}
+    \subsubsection{Plots:}
+    We plot the phase and magnitude of the DFT of $sin(5t)$:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig1.png}
+        \caption{Spectrum of $sin(5t)$}
+    \end{figure}
+    \subsubsection{Observations:}
+    This is expected, because:
+    \begin{equation}
+        sin(5t) = \frac{1}{2j}(e^{5jt}-e^{-5jt})
+    \end{equation}
+    
+    So, the frequencies present in the DFT of $sin(5t)$ are $\omega = \pm5\ rad/sec$, and the phase associated with them is $\phi = \pm \frac{\pi}{2}\ rad/sec$ respectively. This is exactly what is shown in the above plot.
+
+\subsection{Amplitude Modulation with $(1+0.1cos(t))cos(10t)$}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    x = linspace(0,8*pi,513)
+    x = x[:-1]
+    
+    w = linspace(-64,64,513)
+    w=w[:-1]
+    
+    y = (1+0.1*cos(x))*cos(10*x)
+    
+    Y = fftshift(fft(y))/512
+    \end{lstlisting}
+    \subsubsection{Plots:}
+    Plotting the DFT using the \textit{numpy.fft} package, we get:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig2.png}
+        \caption{DFT of $(1+0.1cos(t))cos(10t)$}
+    \end{figure}
+    \subsubsection{Observations:}
+    We have,
+    \begin{equation}
+        (1+0.1cos(t))cos(10t) = \frac{1}{2}(e^{10jt}+e^{-10jt}) + 0.1\cdot\frac{1}{2}\cdot\frac{1}{2}(e^{11jt} + e^{-11jt} + e^{9jt} + e^{-9jt})
+    \end{equation}
+    
+    Writing $(1+0.1cos(t))cos(10t)$ in a different form, we observe that the frequencies present in the signal are $\omega = \pm 10\ rad/sec$, $\omega = \pm 11\ rad/sec$ and $\omega = \pm 9\ rad/sec$. Thus we expect the DFT also to have non-zero magnitudes only at these frequencies.
+
+\subsection{Spectra of $sin^3(t)$ and $cos^3(t)$}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    x = linspace(0,2*pi,129)
+    x = x[:-1]
+    
+    w = linspace(-64,64,129)
+    w=w[:-1]
+    
+    y = (sin(x))**3
+    
+    Y = fftshift(fft(y))/128
+    
+    x = linspace(0,2*pi,129)
+    
+    x = x[:-1]
+    
+    w = linspace(-64,64,129)
+    w=w[:-1]
+    
+    y = (cos(x))**3
+    
+    Y = fftshift(fft(y))/128
+    \end{lstlisting}
+    \subsubsection{Plots:}
+    DFT Spectrum of $sin^3(t)$:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig3.png}
+        \caption{Spectrum of $sin^3(t)$}
+    \end{figure}
+    DFT Spectrum of $cos^3(t)$:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig4.png}
+        \caption{Spectrum of $cos^3(t)$}
+    \end{figure}    
+    \subsubsection{Observations:}
+    The above 2 figures are expected because:
+    \begin{gather}
+        sin^3(t) = \frac{3}{4}sin(t) - \frac{1}{4}sin(3t)\\
+        cos^3(t) = \frac{3}{4}cos(t) + \frac{1}{4}cos(3t)
+    \end{gather}
+    So, we expect peaks $\omega = \pm 1\ rad/sec$ and $\omega = \pm 3\ rad/sec$.
+
+\subsection{Frequency Modulation with $cos(20t + 5cos(t))$}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    x = linspace(0,2*pi,129)
+    x = x[:-1]
+    
+    w = linspace(-64,64,129)
+    w=w[:-1]
+    
+    y = cos(20*x + 5*cos(x))
+    
+    Y = fftshift(fft(y))/128
+    
+    i = where(abs(Y)>1e-3)
+    subplot(2,1,2)
+    plot(w[i],angle(Y[i]),'r.')
+    \end{lstlisting}
+    \subsubsection{Plots:}
+    The DFT of $cos(20t + 5cos(t))$ can be seen below:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig5.png}
+        \caption{DFT of $cos(20t + 5cos(t))$}
+    \end{figure}
+    \subsubsection{Observations:}
+    When we compare this result with that of the Amplitude Modulation, we see that there are more side bands, and some of them have even higher energy than $\omega = \pm 20 \ rad/sec$.
+
+\subsection{DFT of a Gaussian}
+    \subsubsection{Code snippet:}
+    \begin{lstlisting}[language=Python]
+    t =  np.linspace(-8*pi, 8*pi, 1025)
+    t = t[:-1]
+    xTrueGaussian = np.exp(-(t**2)/2)
+    Y = fftshift(fft(ifftshift(xTrueGaussian)))*8/1024.0
+    
+    YMag = np.abs(Y)
+    YPhase = np.angle(Y)
+    absentFreqs = np.where(YMag < 1e-3)
+    YPhase[absentFreqs] = 0
+    w = np.linspace(-40, 40, 1025)
+    w = w[:-1]
+    
+    trueY = np.exp(-(w**2)/2)/np.sqrt(2*pi)
+    trueYMag = np.abs(trueY)
+    trueYPhase = np.angle(trueY)
+
+    meanError = np.mean(np.abs(trueY - Y))
+    \end{lstlisting}
+    \subsubsection{Plots:}
+    The DFT of a gaussian is also a gaussian, as shown below:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{fig6.png}
+        \caption{Gaussian Spectrum}
+    \end{figure}
+    \subsubsection{Observations:}
+    Magnitude of Mean error between computed and actual values of the Gaussian is: 0.00468750000000002
+    for  a window from [-8$\pi$, 8$\pi$] and taking 512 points in that interval.
+   
+
+\section{Conclusions}
+\begin{enumerate}
+\item
+We have analysed the DFT's of various signals using the \textit{numpy.fft} package.
+\item We have used the \textit{numpy.fft.fftshift()} and \textit{numpy.fft.ifftshift()} methods to fix distortions in the phase response.
+\end{enumerate}
+
+\end{document}

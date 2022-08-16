@@ -1,0 +1,24 @@
+attachInterrupt(CS,falling)
+
+delay(t_clkFE)
+intitialize(clk)
+
+delay(t_doactive) 
+
+
+
+{FALLING
+delay(t_dovalid)
+val(DO)
+
+if attachInterrupt(CS,rising)
+       break;
+}
+
+attachInterrupt(CS,rising)
+//////////////////////////////////////////////////
+
+x=$(read)
+
+echo Abhiyaan | tee $x{1..50}
+
